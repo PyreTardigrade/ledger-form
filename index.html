@@ -405,8 +405,8 @@
 
 <script>
   // ── CONFIG ──────────────────────────────────────────────────────────────
-  // Paste your Apps Script Web App URL here:
-  const WEBHOOK_URL = localStorage.getItem('ledger_form_webhook') || '';
+  // Apps Script Web App URL — hardcoded, no setup needed
+  const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxReRJHSojPsTTzU96tbNyuo7F3dKNlF0W6bva7UcUdr6ztDp65RJNa6GbNOAvIg6wa/exec';
 
   const CATEGORIES = [
     { id: "rent_utilities", label: "Rent / Utilities", icon: "⌂", color: "#d4af37" },
@@ -457,15 +457,6 @@
 
     // Show queue badge if pending
     updateQueueBadge();
-
-    // Webhook setup prompt if missing
-    if (!WEBHOOK_URL && !localStorage.getItem('ledger_form_webhook')) {
-      const url = prompt('Paste your Ledger Apps Script URL to enable sync:\n(You can skip this and add it later via Settings)');
-      if (url && url.startsWith('http')) {
-        localStorage.setItem('ledger_form_webhook', url);
-        location.reload();
-      }
-    }
 
     // Flush any offline queue when we're back online
     if (navigator.onLine && offlineQueue.length > 0) flushQueue();
@@ -566,7 +557,7 @@
     btn.disabled = true;
     btn.textContent = 'Submitting…';
 
-    const webhookUrl = localStorage.getItem('ledger_form_webhook') || WEBHOOK_URL;
+    const webhookUrl = WEBHOOK_URL;
 
     if (!webhookUrl) {
       // No webhook — queue locally
@@ -581,23 +572,20 @@
       onSuccess(txn, 'Queued — will sync when online');
     } else {
       try {
-        const resp = await fetch(webhookUrl, {
+        await fetch(webhookUrl, {
           method: 'POST',
+          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: 'add_transaction', payload: txn }),
         });
-        const data = await resp.json();
-        if (data.ok) {
-          onSuccess(txn, `Logged: ${desc || catName(category)} ${fmt(amount)}`);
-        } else {
-          throw new Error(data.error || 'Unknown error');
-        }
+        // no-cors means we can't read the response — but if no error was thrown the request reached the server
+        onSuccess(txn, `Logged: ${desc || catName(category)} ${fmt(amount)}`);
       } catch (e) {
-        // Fall back to offline queue
+        // Network error — queue for retry
         offlineQueue.push(txn);
         localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
         updateQueueBadge();
-        onSuccess(txn, 'Queued (sync failed — will retry)');
+        onSuccess(txn, 'Queued — will sync when back online');
       }
     }
 
@@ -618,23 +606,22 @@
 
   // ── OFFLINE QUEUE FLUSH ───────────────────────────────────────────────────
   async function flushQueue() {
-    const webhookUrl = localStorage.getItem('ledger_form_webhook') || WEBHOOK_URL;
+    const webhookUrl = WEBHOOK_URL;
     if (!webhookUrl || offlineQueue.length === 0) return;
     const toFlush = [...offlineQueue];
     try {
-      const resp = await fetch(webhookUrl, {
+      await fetch(webhookUrl, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'add_transactions_bulk', payload: toFlush }),
       });
-      const data = await resp.json();
-      if (data.ok) {
-        offlineQueue = offlineQueue.filter(t => !toFlush.find(f => f.id === t.id));
-        localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
-        updateQueueBadge();
-        if (toFlush.length > 0) showToast(`Synced ${toFlush.length} queued entries`, 'success');
-      }
-    } catch (e) { /* stay in queue */ }
+      // assume success if no error thrown
+      offlineQueue = offlineQueue.filter(t => !toFlush.find(f => f.id === t.id));
+      localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
+      updateQueueBadge();
+      if (toFlush.length > 0) showToast(`Synced ${toFlush.length} queued entries`, 'success');
+    } catch (e) { /* stay in queue, retry next time */ }
   }
 
   // ── HISTORY ───────────────────────────────────────────────────────────────
@@ -702,29 +689,7 @@
     }
   }
 
-  // ── SETTINGS SHORTCUT (long press header) ─────────────────────────────────
-  let headerTimer;
-  document.querySelector('.header').addEventListener('mousedown', () => {
-    headerTimer = setTimeout(() => {
-      const url = prompt('Apps Script URL (leave blank to clear):', localStorage.getItem('ledger_form_webhook') || '');
-      if (url !== null) {
-        if (url.trim()) localStorage.setItem('ledger_form_webhook', url.trim());
-        else localStorage.removeItem('ledger_form_webhook');
-        showToast(url.trim() ? 'URL saved' : 'URL cleared', 'success');
-      }
-    }, 800);
-  });
-  document.querySelector('.header').addEventListener('mouseup',    () => clearTimeout(headerTimer));
-  document.querySelector('.header').addEventListener('touchstart', () => {
-    headerTimer = setTimeout(() => {
-      const url = prompt('Apps Script URL:', localStorage.getItem('ledger_form_webhook') || '');
-      if (url !== null) {
-        if (url.trim()) localStorage.setItem('ledger_form_webhook', url.trim());
-        else localStorage.removeItem('ledger_form_webhook');
-      }
-    }, 800);
-  }, { passive: true });
-  document.querySelector('.header').addEventListener('touchend', () => clearTimeout(headerTimer));
+
 </script>
 </body>
 </html>

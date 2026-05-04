@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e0f10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ledger · Log" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%88%91%3C/text%3E%3C/svg%3E" />
+  <title>∑ Ledger · Log Entry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #0e0f10;
+      --bg-2:     #16181a;
+      --bg-3:     #1d2023;
+      --border:   #2a2d31;
+      --border-2: #383c42;
+      --text:     #e8e6e1;
+      --text-dim: #8b8d92;
+      --text-faint: #5a5d63;
+      --accent:   #d4af37;
+      --accent-soft: #d4af3722;
+      --sam:      #ec6c8e;
+      --sam-soft: #ec6c8e22;
+      --shreyas:  #c44545;
+      --shreyas-soft: #c4454522;
+      --in:       #7fb069;
+      --out:      #e87a5d;
+      --display:  'Fraunces', Georgia, serif;
+      --mono:     'JetBrains Mono', ui-monospace, monospace;
+      --sans:     'Inter', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px 12px;
+      background: rgba(14,15,16,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { display: flex; align-items: baseline; gap: 8px; }
+    .brand-mark {
+      font-family: var(--display); font-size: 22px; font-weight: 500;
+      background: linear-gradient(135deg, var(--shreyas), var(--accent), var(--sam));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-text {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.3em;
+      color: var(--text-dim); font-weight: 500; text-transform: uppercase;
+    }
+    .brand-sub {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.15em;
+      color: var(--text-faint); text-transform: uppercase;
+      border: 1px solid var(--border-2); padding: 2px 6px; border-radius: 3px;
+    }
+    .header-status {
+      font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    /* ── FORM SHELL ─────────────────────────── */
+    .form-wrap {
+      padding: 16px 16px 40px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+
+    /* ── TYPE TOGGLE ────────────────────────── */
+    .type-toggle {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .type-btn {
+      padding: 14px; background: var(--bg-2); border: none;
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      color: var(--text-faint); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .type-btn:first-child { border-right: 1px solid var(--border); }
+    .type-btn.active-expense { background: var(--bg); color: var(--out); }
+    .type-btn.active-income  { background: var(--bg); color: var(--in); }
+
+    /* ── AMOUNT ─────────────────────────────── */
+    .amount-section {
+      text-align: center;
+      padding: 8px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .amount-label {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+    .amount-row {
+      display: flex; align-items: baseline; justify-content: center; gap: 4px;
+    }
+    .amount-currency {
+      font-family: var(--display); font-size: 28px; color: var(--text-faint);
+    }
+    .amount-input {
+      background: transparent; border: none; outline: none;
+      font-family: var(--display); font-size: 52px; font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      width: 6ch; max-width: 70vw; min-width: 2ch;
+      text-align: center;
+      caret-color: var(--accent);
+    }
+    .amount-input::placeholder { color: var(--text-faint); }
+
+    /* ── FIELD ──────────────────────────────── */
+    .field {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .field-label {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.2em;
+      color: var(--text-faint);
+    }
+    .input {
+      background: var(--bg-2); border: 1px solid var(--border);
+      color: var(--text); padding: 13px 14px; border-radius: 8px;
+      font-family: var(--sans); font-size: 15px;
+      width: 100%; outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    .input:focus { border-color: var(--accent); }
+    select.input { cursor: pointer; }
+
+    /* ── CHIP GROUPS ────────────────────────── */
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 9px 14px;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 20px; cursor: pointer;
+      font-size: 13px; font-family: var(--sans);
+      color: var(--text-dim);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--border-2); color: var(--text); }
+    .chip.active {
+      background: var(--bg); color: var(--accent);
+      border-color: var(--accent);
+    }
+    .chip[data-person="shreyas"].active { color: var(--shreyas); border-color: var(--shreyas); background: var(--shreyas-soft); }
+    .chip[data-person="sam"].active     { color: var(--sam);     border-color: var(--sam);     background: var(--sam-soft); }
+    .chip[data-person="joint"].active   { color: var(--accent);  border-color: var(--accent);  background: var(--accent-soft); }
+    .chip-icon { font-size: 15px; }
+
+    /* ── POT TOGGLE ─────────────────────────── */
+    .pot-toggle {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .pot-btn {
+      padding: 12px; background: var(--bg-2); border: none;
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-faint); cursor: pointer;
+      transition: all 0.15s;
+      border-right: 1px solid var(--border);
+    }
+    .pot-btn:last-child { border-right: none; }
+    .pot-btn[data-person="shreyas"].active { background: var(--shreyas-soft); color: var(--shreyas); }
+    .pot-btn[data-person="sam"].active     { background: var(--sam-soft);     color: var(--sam); }
+    .pot-btn[data-person="joint"].active   { background: var(--accent-soft);  color: var(--accent); }
+
+    /* ── PAID BY (shows when joint) ─────────── */
+    .paid-by-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .paid-by-btn {
+      padding: 11px; background: var(--bg-2); border: none;
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-faint); cursor: pointer;
+      border-right: 1px solid var(--border); transition: all 0.15s;
+    }
+    .paid-by-btn:last-child { border-right: none; }
+    .paid-by-btn[data-person="shreyas"].active { background: var(--shreyas-soft); color: var(--shreyas); }
+    .paid-by-btn[data-person="sam"].active     { background: var(--sam-soft); color: var(--sam); }
+
+    /* ── SUBMIT ─────────────────────────────── */
+    .submit-btn {
+      width: 100%; padding: 16px;
+      background: var(--accent); color: #1a1a1a;
+      border: none; border-radius: 10px;
+      font-family: var(--mono); font-size: 13px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 8px;
+    }
+    .submit-btn:hover { background: #e0bb3f; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── TOAST ──────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--bg-2); border: 1px solid var(--border);
+      padding: 12px 20px; border-radius: 10px;
+      font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em;
+      color: var(--text); white-space: nowrap;
+      transition: transform 0.3s cubic-bezier(.2,.9,.3,1.2), opacity 0.3s;
+      opacity: 0; z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--in); color: var(--in); }
+    .toast.error   { border-color: var(--out); color: var(--out); }
+
+    /* ── OFFLINE BANNER ─────────────────────── */
+    .offline-banner {
+      display: none;
+      background: var(--shreyas-soft); border-bottom: 1px solid var(--shreyas);
+      padding: 8px 16px;
+      font-family: var(--mono); font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      color: var(--shreyas); text-align: center;
+    }
+    .offline-banner.show { display: block; }
+
+    /* ── QUEUE BADGE ────────────────────────── */
+    .queue-badge {
+      display: none;
+      background: var(--accent-soft); border: 1px solid var(--accent);
+      padding: 6px 12px; border-radius: 6px; margin-bottom: 12px;
+      font-family: var(--mono); font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--accent); text-align: center;
+    }
+    .queue-badge.show { display: block; }
+
+    /* ── HISTORY ────────────────────────────── */
+    .history-section {
+      margin-top: 32px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+    .history-title {
+      font-family: var(--mono); font-size: 9px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.2em;
+      color: var(--text-faint); margin-bottom: 12px;
+    }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .history-icon { font-size: 14px; }
+    .history-body { flex: 1; min-width: 0; }
+    .history-desc {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-weight: 500;
+    }
+    .history-meta {
+      font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+    .history-amt {
+      font-family: var(--mono); font-size: 13px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .history-amt.out { color: var(--out); }
+    .history-amt.in  { color: var(--in); }
+  </style>
+</head>
+<body>
+
+<div class="offline-banner" id="offlineBanner">⚠ Offline — entries queued locally</div>
+
+<header class="header">
+  <div class="brand">
+    <span class="brand-mark">∑</span>
+    <span class="brand-text">Ledger</span>
+    <span class="brand-sub">Log</span>
+  </div>
+  <span class="header-status" id="headerStatus"></span>
+</header>
+
+<div class="form-wrap">
+
+  <div class="queue-badge" id="queueBadge"></div>
+
+  <!-- TYPE -->
+  <div class="type-toggle">
+    <button class="type-btn active-expense" id="btnExpense" onclick="setType('expense')">⬇ Expense</button>
+    <button class="type-btn" id="btnIncome" onclick="setType('income')">⬆ Income</button>
+  </div>
+
+  <!-- AMOUNT -->
+  <div class="amount-section">
+    <div class="amount-label">Amount</div>
+    <div class="amount-row">
+      <span class="amount-currency">$</span>
+      <input
+        class="amount-input" id="amountInput"
+        type="number" inputmode="decimal"
+        placeholder="0.00" step="0.01" min="0"
+        autofocus
+      />
+    </div>
+  </div>
+
+  <!-- CATEGORY -->
+  <div class="field" id="categoryField">
+    <div class="field-label">Category</div>
+    <div class="chips" id="categoryChips"></div>
+  </div>
+
+  <!-- DESCRIPTION -->
+  <div class="field">
+    <div class="field-label">Description</div>
+    <input class="input" id="descInput" type="text" placeholder="e.g. Trader Joe's" autocomplete="off" />
+  </div>
+
+  <!-- DATE -->
+  <div class="field">
+    <div class="field-label">Date</div>
+    <input class="input" id="dateInput" type="date" />
+  </div>
+
+  <!-- POT -->
+  <div class="field" id="potField">
+    <div class="field-label">Pot</div>
+    <div class="pot-toggle">
+      <button class="pot-btn" data-person="shreyas" onclick="setPot('shreyas')">Shreyas</button>
+      <button class="pot-btn active" data-person="joint" onclick="setPot('joint')">Joint</button>
+      <button class="pot-btn" data-person="sam" onclick="setPot('sam')">Sam</button>
+    </div>
+  </div>
+
+  <!-- PAID BY (joint only) -->
+  <div class="field" id="paidByField">
+    <div class="field-label">Paid by</div>
+    <div class="paid-by-row">
+      <button class="paid-by-btn active" data-person="shreyas" onclick="setPaidBy('shreyas')">Shreyas</button>
+      <button class="paid-by-btn" data-person="sam" onclick="setPaidBy('sam')">Sam</button>
+    </div>
+  </div>
+
+  <!-- PAYMENT METHOD -->
+  <div class="field">
+    <div class="field-label">Payment method</div>
+    <select class="input" id="paymentInput">
+      <option>Credit Card</option>
+      <option>Debit Card</option>
+      <option>Cash</option>
+      <option>Venmo</option>
+      <option>Zelle</option>
+      <option>ACH/Bank</option>
+      <option>Other</option>
+    </select>
+  </div>
+
+  <!-- NOTES -->
+  <div class="field">
+    <div class="field-label">Notes (optional)</div>
+    <input class="input" id="notesInput" type="text" placeholder="Any extra detail…" />
+  </div>
+
+  <!-- SUBMIT -->
+  <button class="submit-btn" id="submitBtn" onclick="submit()">Submit Entry</button>
+
+  <!-- HISTORY -->
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-title">Recent (this session)</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────
+  // Paste your Apps Script Web App URL here:
+  const WEBHOOK_URL = localStorage.getItem('ledger_form_webhook') || '';
+
+  const CATEGORIES = [
+    { id: "rent_utilities", label: "Rent / Utilities", icon: "⌂", color: "#d4af37" },
+    { id: "groceries",      label: "Groceries",        icon: "◐", color: "#7fb069" },
+    { id: "dining_out",     label: "Dining Out",       icon: "◉", color: "#e87a5d" },
+    { id: "gas_car",        label: "Gas / Car",        icon: "◈", color: "#5b8db8" },
+    { id: "commute",        label: "Commute",          icon: "◇", color: "#6c7b8a" },
+    { id: "subscriptions",  label: "Subscriptions",    icon: "◎", color: "#b07cc6" },
+    { id: "beauty",         label: "Beauty",           icon: "◊", color: "#e0a3c9" },
+    { id: "clothes",        label: "Clothes",          icon: "▣", color: "#c9a87c" },
+    { id: "powerlifting",   label: "Powerlifting",     icon: "▲", color: "#c44545" },
+    { id: "fun",            label: "Fun",              icon: "★", color: "#f4c430" },
+    { id: "gifts",          label: "Gifts",            icon: "✦", color: "#d97a8c" },
+    { id: "misc",           label: "Misc",             icon: "○", color: "#8a8a8a" },
+    { id: "savings",        label: "Savings",          icon: "■", color: "#4a9d7c" },
+    { id: "investments",    label: "Investments",      icon: "◆", color: "#3a7d9c" },
+    { id: "income",         label: "Income",           icon: "↗", color: "#7fb069", isIncome: true },
+  ];
+
+  // ── STATE ────────────────────────────────────────────────────────────────
+  let type      = 'expense';
+  let category  = localStorage.getItem('lf_cat') || 'groceries';
+  let pot       = localStorage.getItem('lf_pot') || 'joint';
+  let paidBy    = localStorage.getItem('lf_paidBy') || 'shreyas';
+  let sessionHistory = [];
+  let offlineQueue = JSON.parse(localStorage.getItem('lf_queue') || '[]');
+
+  // ── INIT ─────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    // Set today's date
+    document.getElementById('dateInput').value = new Date().toISOString().slice(0, 10);
+
+    // Build category chips
+    buildCategories();
+
+    // Restore last used payment method
+    const lastPay = localStorage.getItem('lf_payment');
+    if (lastPay) document.getElementById('paymentInput').value = lastPay;
+
+    // Restore pot
+    setPot(pot);
+    setPaidBy(paidBy);
+
+    // Offline detection
+    updateOnlineStatus();
+    window.addEventListener('online',  updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // Show queue badge if pending
+    updateQueueBadge();
+
+    // Webhook setup prompt if missing
+    if (!WEBHOOK_URL && !localStorage.getItem('ledger_form_webhook')) {
+      const url = prompt('Paste your Ledger Apps Script URL to enable sync:\n(You can skip this and add it later via Settings)');
+      if (url && url.startsWith('http')) {
+        localStorage.setItem('ledger_form_webhook', url);
+        location.reload();
+      }
+    }
+
+    // Flush any offline queue when we're back online
+    if (navigator.onLine && offlineQueue.length > 0) flushQueue();
+  });
+
+  function buildCategories() {
+    const chips = document.getElementById('categoryChips');
+    const cats = type === 'income'
+      ? CATEGORIES.filter(c => c.isIncome)
+      : CATEGORIES.filter(c => !c.isIncome);
+
+    chips.innerHTML = cats.map(c => `
+      <button
+        class="chip ${category === c.id ? 'active' : ''}"
+        onclick="setCategory('${c.id}')"
+        style="${category === c.id ? `border-color:${c.color};color:${c.color}` : ''}"
+      >
+        <span class="chip-icon" style="color:${c.color}">${c.icon}</span>
+        ${c.label}
+      </button>
+    `).join('');
+
+    // If income mode and current cat isn't income, switch to income cat
+    if (type === 'income' && category !== 'income') {
+      setCategory('income');
+    }
+  }
+
+  // ── INTERACTIONS ──────────────────────────────────────────────────────────
+  function setType(t) {
+    type = t;
+    document.getElementById('btnExpense').className = 'type-btn' + (t === 'expense' ? ' active-expense' : '');
+    document.getElementById('btnIncome').className  = 'type-btn' + (t === 'income'  ? ' active-income'  : '');
+    // Hide pot/paidBy for income
+    document.getElementById('potField').style.display    = t === 'income' ? 'none' : '';
+    document.getElementById('paidByField').style.display = (t === 'income' || pot !== 'joint') ? 'none' : '';
+    buildCategories();
+  }
+
+  function setCategory(id) {
+    category = id;
+    localStorage.setItem('lf_cat', id);
+    buildCategories();
+  }
+
+  function setPot(p) {
+    pot = p;
+    localStorage.setItem('lf_pot', p);
+    document.querySelectorAll('.pot-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.person === p);
+    });
+    // Show/hide paid by
+    const showPaidBy = p === 'joint' && type !== 'income';
+    document.getElementById('paidByField').style.display = showPaidBy ? '' : 'none';
+  }
+
+  function setPaidBy(p) {
+    paidBy = p;
+    localStorage.setItem('lf_paidBy', p);
+    document.querySelectorAll('.paid-by-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.person === p);
+    });
+  }
+
+  // ── SUBMIT ────────────────────────────────────────────────────────────────
+  async function submit() {
+    const amountRaw = parseFloat(document.getElementById('amountInput').value);
+    if (!amountRaw || amountRaw <= 0) { showToast('Enter an amount', 'error'); return; }
+    if (!category) { showToast('Pick a category', 'error'); return; }
+
+    const desc    = document.getElementById('descInput').value.trim();
+    const date    = document.getElementById('dateInput').value || new Date().toISOString().slice(0, 10);
+    const payment = document.getElementById('paymentInput').value;
+    const notes   = document.getElementById('notesInput').value.trim();
+    const amount  = type === 'income' ? Math.abs(amountRaw) : -Math.abs(amountRaw);
+
+    localStorage.setItem('lf_payment', payment);
+
+    const txn = {
+      id:             Math.random().toString(36).slice(2) + Date.now().toString(36),
+      createdAt:      new Date().toISOString(),
+      date,
+      amount,
+      category,
+      description:    desc,
+      pot:            type === 'income' ? 'shreyas' : pot,
+      paid_by:        pot === 'joint' ? paidBy : (type === 'income' ? 'shreyas' : pot),
+      payment_method: payment,
+      notes,
+      split_shreyas:  pot === 'joint' ? 0.5 : null,
+      is_recurring:   false,
+      receipt_url:    null,
+      subcategory:    null,
+      source:         'form',
+    };
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const webhookUrl = localStorage.getItem('ledger_form_webhook') || WEBHOOK_URL;
+
+    if (!webhookUrl) {
+      // No webhook — queue locally
+      offlineQueue.push(txn);
+      localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
+      updateQueueBadge();
+      onSuccess(txn, 'Saved locally (no sync configured)');
+    } else if (!navigator.onLine) {
+      offlineQueue.push(txn);
+      localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
+      updateQueueBadge();
+      onSuccess(txn, 'Queued — will sync when online');
+    } else {
+      try {
+        const resp = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'add_transaction', payload: txn }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          onSuccess(txn, `Logged: ${desc || catName(category)} ${fmt(amount)}`);
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+      } catch (e) {
+        // Fall back to offline queue
+        offlineQueue.push(txn);
+        localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
+        updateQueueBadge();
+        onSuccess(txn, 'Queued (sync failed — will retry)');
+      }
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Submit Entry';
+  }
+
+  function onSuccess(txn, msg) {
+    showToast(msg, 'success');
+    addToHistory(txn);
+    // Reset form fields
+    document.getElementById('amountInput').value = '';
+    document.getElementById('descInput').value = '';
+    document.getElementById('notesInput').value = '';
+    document.getElementById('dateInput').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('amountInput').focus();
+  }
+
+  // ── OFFLINE QUEUE FLUSH ───────────────────────────────────────────────────
+  async function flushQueue() {
+    const webhookUrl = localStorage.getItem('ledger_form_webhook') || WEBHOOK_URL;
+    if (!webhookUrl || offlineQueue.length === 0) return;
+    const toFlush = [...offlineQueue];
+    try {
+      const resp = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'add_transactions_bulk', payload: toFlush }),
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        offlineQueue = offlineQueue.filter(t => !toFlush.find(f => f.id === t.id));
+        localStorage.setItem('lf_queue', JSON.stringify(offlineQueue));
+        updateQueueBadge();
+        if (toFlush.length > 0) showToast(`Synced ${toFlush.length} queued entries`, 'success');
+      }
+    } catch (e) { /* stay in queue */ }
+  }
+
+  // ── HISTORY ───────────────────────────────────────────────────────────────
+  function addToHistory(txn) {
+    sessionHistory.unshift(txn);
+    if (sessionHistory.length > 8) sessionHistory = sessionHistory.slice(0, 8);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const section = document.getElementById('historySection');
+    const list    = document.getElementById('historyList');
+    if (sessionHistory.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    const cat = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES.find(c => c.id === 'misc');
+    list.innerHTML = sessionHistory.map(t => `
+      <div class="history-item">
+        <span class="history-icon" style="color:${cat(t.category).color}">${cat(t.category).icon}</span>
+        <div class="history-body">
+          <div class="history-desc">${t.description || cat(t.category).label}</div>
+          <div class="history-meta">${t.category} · ${t.pot} · ${t.date}</div>
+        </div>
+        <span class="history-amt ${t.amount < 0 ? 'out' : 'in'}">${fmt(t.amount)}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── UTILS ─────────────────────────────────────────────────────────────────
+  function fmt(n) {
+    const abs = Math.abs(n);
+    const s = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? '−' : '+') + '$' + s;
+  }
+
+  function catName(id) {
+    return CATEGORIES.find(c => c.id === id)?.label || id;
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type}`;
+    void t.offsetHeight;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function updateOnlineStatus() {
+    const banner = document.getElementById('offlineBanner');
+    if (!navigator.onLine) {
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+      flushQueue();
+    }
+  }
+
+  function updateQueueBadge() {
+    const badge = document.getElementById('queueBadge');
+    if (offlineQueue.length > 0) {
+      badge.textContent = `${offlineQueue.length} entr${offlineQueue.length === 1 ? 'y' : 'ies'} queued — will sync when connected`;
+      badge.classList.add('show');
+    } else {
+      badge.classList.remove('show');
+    }
+  }
+
+  // ── SETTINGS SHORTCUT (long press header) ─────────────────────────────────
+  let headerTimer;
+  document.querySelector('.header').addEventListener('mousedown', () => {
+    headerTimer = setTimeout(() => {
+      const url = prompt('Apps Script URL (leave blank to clear):', localStorage.getItem('ledger_form_webhook') || '');
+      if (url !== null) {
+        if (url.trim()) localStorage.setItem('ledger_form_webhook', url.trim());
+        else localStorage.removeItem('ledger_form_webhook');
+        showToast(url.trim() ? 'URL saved' : 'URL cleared', 'success');
+      }
+    }, 800);
+  });
+  document.querySelector('.header').addEventListener('mouseup',    () => clearTimeout(headerTimer));
+  document.querySelector('.header').addEventListener('touchstart', () => {
+    headerTimer = setTimeout(() => {
+      const url = prompt('Apps Script URL:', localStorage.getItem('ledger_form_webhook') || '');
+      if (url !== null) {
+        if (url.trim()) localStorage.setItem('ledger_form_webhook', url.trim());
+        else localStorage.removeItem('ledger_form_webhook');
+      }
+    }, 800);
+  }, { passive: true });
+  document.querySelector('.header').addEventListener('touchend', () => clearTimeout(headerTimer));
+</script>
+</body>
+</html>

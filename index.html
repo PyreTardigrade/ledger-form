@@ -73,6 +73,23 @@
       font-family: var(--mono); font-size: 10px; color: var(--text-faint);
       letter-spacing: 0.1em; text-transform: uppercase;
     }
+    .submitter-toggle {
+      display: flex; gap: 2px; padding: 2px;
+      background: var(--bg-3); border-radius: 6px;
+    }
+    .submitter-btn {
+      padding: 5px 12px; background: transparent; border: none;
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-faint); cursor: pointer; border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .submitter-btn[data-person="shreyas"].active {
+      background: var(--shreyas-soft); color: var(--shreyas);
+    }
+    .submitter-btn[data-person="sam"].active {
+      background: var(--sam-soft); color: var(--sam);
+    }
 
     /* ── FORM SHELL ─────────────────────────── */
     .form-wrap {
@@ -306,7 +323,10 @@
     <span class="brand-text">Ledger</span>
     <span class="brand-sub">Log</span>
   </div>
-  <span class="header-status" id="headerStatus"></span>
+  <div class="submitter-toggle">
+    <button class="submitter-btn active" id="btnShreyas" data-person="shreyas" onclick="setSubmitter('shreyas')">Shreyas</button>
+    <button class="submitter-btn" id="btnSam" data-person="sam" onclick="setSubmitter('sam')">Sam</button>
+  </div>
 </header>
 
 <div class="form-wrap">
@@ -431,6 +451,7 @@
   let category  = localStorage.getItem('lf_cat') || 'groceries';
   let pot       = localStorage.getItem('lf_pot') || 'joint';
   let paidBy    = localStorage.getItem('lf_paidBy') || 'shreyas';
+  let submitter = localStorage.getItem('lf_submitter') || 'shreyas'; // who is filling this form
   let sessionHistory = [];
   let offlineQueue = JSON.parse(localStorage.getItem('lf_queue') || '[]');
 
@@ -445,6 +466,9 @@
     // Restore last used payment method
     const lastPay = localStorage.getItem('lf_payment');
     if (lastPay) document.getElementById('paymentInput').value = lastPay;
+
+    // Restore submitter (persists per device — Sam's phone stays "Sam")
+    setSubmitter(submitter);
 
     // Restore pot
     setPot(pot);
@@ -486,6 +510,16 @@
   }
 
   // ── INTERACTIONS ──────────────────────────────────────────────────────────
+  function setSubmitter(s) {
+    submitter = s;
+    localStorage.setItem('lf_submitter', s);
+    document.querySelectorAll('.submitter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.person === s);
+    });
+    // Default the pot's "paid by" to the submitter
+    setPaidBy(s);
+  }
+
   function setType(t) {
     type = t;
     document.getElementById('btnExpense').className = 'type-btn' + (t === 'expense' ? ' active-expense' : '');
@@ -542,8 +576,8 @@
       amount,
       category,
       description:    desc,
-      pot:            type === 'income' ? 'shreyas' : pot,
-      paid_by:        pot === 'joint' ? paidBy : (type === 'income' ? 'shreyas' : pot),
+      pot:            type === 'income' ? submitter : pot,
+      paid_by:        pot === 'joint' ? paidBy : (type === 'income' ? submitter : pot),
       payment_method: payment,
       notes,
       split_shreyas:  pot === 'joint' ? 0.5 : null,

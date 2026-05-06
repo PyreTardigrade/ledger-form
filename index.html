@@ -48,7 +48,6 @@
     .header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 14px 16px 12px;
-      padding-top: calc(14px + env(safe-area-inset-top));
       background: rgba(14,15,16,0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
@@ -259,17 +258,11 @@
       display: none;
       background: var(--shreyas-soft); border-bottom: 1px solid var(--shreyas);
       padding: 8px 16px;
-      padding-top: calc(8px + env(safe-area-inset-top));
       font-family: var(--mono); font-size: 10px;
       text-transform: uppercase; letter-spacing: 0.15em;
       color: var(--shreyas); text-align: center;
     }
     .offline-banner.show { display: block; }
-    /* When offline banner is visible it absorbs the safe area, so header doesn't double-pad */
-    .offline-banner.show + * .header,
-    .offline-banner.show ~ * .header {
-      padding-top: 14px;
-    }
 
     /* ── QUEUE BADGE ────────────────────────── */
     .queue-badge {
@@ -369,7 +362,7 @@
   <!-- DESCRIPTION -->
   <div class="field">
     <div class="field-label">Description</div>
-    <input class="input" id="descInput" type="text" placeholder="e.g. Trader Joe's" autocomplete="off" />
+    <input class="input" id="descInput" required type="text" placeholder="e.g. Trader Joe's" autocomplete="off" />
   </div>
 
   <!-- DATE -->
@@ -567,6 +560,8 @@
     const amountRaw = parseFloat(document.getElementById('amountInput').value);
     if (!amountRaw || amountRaw <= 0) { showToast('Enter an amount', 'error'); return; }
     if (!category) { showToast('Pick a category', 'error'); return; }
+    const descCheck = document.getElementById('descInput').value.trim();
+    if (!descCheck) { showToast('Add a description (merchant name)', 'error'); document.getElementById('descInput').focus(); return; }
 
     const desc    = document.getElementById('descInput').value.trim();
     const date    = document.getElementById('dateInput').value || new Date().toISOString().slice(0, 10);
